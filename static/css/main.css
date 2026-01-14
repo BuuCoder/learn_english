@@ -1620,6 +1620,10 @@ body {
 
 /* Mobile responsive for options menu */
 @media (max-width: 768px) {
+    .sidebar-user-section{
+        padding-bottom: 36px;
+    }
+
     .options-menu {
         min-width: 350px;
     }
