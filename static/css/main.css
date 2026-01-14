@@ -2037,15 +2037,12 @@ body {
     .input-section {
         left: 0;
         padding: 8px 12px;
-        padding-bottom: calc(20px + env(safe-area-inset-bottom));
+        padding-bottom: calc(12px + env(safe-area-inset-bottom));
         background: #f8f9fa;
         z-index: 80;
         position: fixed;
         bottom: 0;
         right: 0;
-        /* Prevent jumping when scrolling */
-        transform: translateZ(0);
-        -webkit-transform: translateZ(0);
     }
 
     .input-section.sidebar-collapsed {

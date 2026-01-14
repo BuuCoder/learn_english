@@ -2629,56 +2629,10 @@ function checkMobileView() {
     }
 }
 
-// Handle keyboard on mobile - adjust input position
+// Handle keyboard on mobile - minimal handling, let CSS do the work
 function setupMobileKeyboard() {
-    const input = document.getElementById('messageInput');
-    const inputSection = document.getElementById('inputSection');
-
-    if (!input || !inputSection) return;
-
-    // Use visualViewport API for iOS keyboard handling
-    if (window.visualViewport) {
-        const handleViewportChange = () => {
-            if (window.innerWidth > 768) return; // Only on mobile
-            
-            // Position input at bottom of visible viewport
-            const offsetTop = window.visualViewport.offsetTop;
-            const viewportHeight = window.visualViewport.height;
-            
-            // Calculate where input should be (at bottom of visible area)
-            inputSection.style.position = 'fixed';
-            inputSection.style.bottom = 'auto';
-            inputSection.style.top = `${offsetTop + viewportHeight - inputSection.offsetHeight}px`;
-            inputSection.style.transform = 'none';
-        };
-
-        window.visualViewport.addEventListener('resize', handleViewportChange);
-        window.visualViewport.addEventListener('scroll', handleViewportChange);
-    }
-
-    // Handle focus for scrolling
-    input.addEventListener('focus', () => {
-        if (window.innerWidth <= 768) {
-            setTimeout(() => {
-                const chatMessages = document.getElementById('chatMessages');
-                if (chatMessages && chatMessages.classList.contains('active')) {
-                    window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
-                }
-            }, 300);
-        }
-    });
-
-    // Handle blur - reset position
-    input.addEventListener('blur', () => {
-        if (window.innerWidth <= 768) {
-            setTimeout(() => {
-                inputSection.style.position = 'fixed';
-                inputSection.style.bottom = '0';
-                inputSection.style.top = 'auto';
-                inputSection.style.transform = 'translateZ(0)';
-            }, 100);
-        }
-    });
+    // iOS Safari handles fixed positioning automatically when keyboard opens
+    // No JS manipulation needed
 }
 
 // Listen for resize
