@@ -1,16 +1,16 @@
 """
-Text-to-Speech routes
+Text-to-Speech routes - Optimized for speed
 """
 
 import io
 import re
 
-from flask import Blueprint, request, jsonify, send_file
+from flask import Blueprint, request, jsonify, send_file, Response
 from flask_login import login_required
 
 from config import IS_PRODUCTION
 from services.tts_service import (
-    audio_cache, generate_tts_audio,
+    audio_cache, generate_tts_audio_simple,
     get_user_voice_config, set_user_voice_config,
     AVAILABLE_VOICES, VALID_VOICE_IDS
 )
@@ -19,6 +19,25 @@ from utils.helpers import get_cache_key
 
 
 tts_bp = Blueprint('tts', __name__)
+
+
+def clean_text_for_tts(text):
+    """Clean text for TTS - remove markdown and special chars"""
+    if not text:
+        return ""
+    # Remove markdown and special patterns
+    text = re.sub(r'[*#_`~]', '', text)
+    # Remove patterns like "A -", "B -", "C -" at the start
+    text = re.sub(r'^[A-Z]\s*-\s*', '', text)
+    # Remove double quotes
+    text = text.replace('"', '')
+    # Replace / with space
+    text = text.replace('/', ' ')
+    # Remove ellipsis
+    text = text.replace('...', ' ')
+    # Clean extra spaces
+    text = ' '.join(text.split())
+    return text.strip()
 
 
 @tts_bp.route("/api/voices", methods=["GET"])
@@ -38,7 +57,6 @@ def set_voices():
     data = request.json or {}
     current_config = get_user_voice_config()
     
-    # Validate voice IDs
     if 'vi' in data:
         if data['vi'] not in VALID_VOICE_IDS:
             return jsonify({"error": "Invalid voice ID"}), 400
@@ -49,7 +67,6 @@ def set_voices():
         current_config['en'] = data['en']
     
     set_user_voice_config(current_config)
-    
     return jsonify({"success": True, "current": current_config})
 
 
@@ -58,8 +75,8 @@ def set_voices():
 def tts_test():
     """Test edge-tts functionality"""
     try:
-        test_text = "Hello world"
-        audio_data = generate_tts_audio(test_text, "en", "+0%")
+        test_text = "Hello"
+        audio_data = generate_tts_audio_simple(test_text, "en", "+0%")
         if audio_data:
             return jsonify({
                 "success": True, 
@@ -77,50 +94,40 @@ def tts_test():
 @tts_bp.route("/api/tts/single", methods=["POST"])
 @login_required
 def tts_single():
-    """API endpoint để tạo audio cho 1 segment"""
+    """API endpoint để tạo audio cho 1 segment - optimized"""
     try:
         data = request.json or {}
-        text = sanitize_input(data.get("text", ""), max_length=1000)
+        text = sanitize_input(data.get("text", ""), max_length=500)  # Reduced max length
         lang = data.get("lang", "vi")
         
         if lang not in ['vi', 'en']:
             lang = 'vi'
         
-        rate = "+15%" if lang == 'vi' else "+0%"
+        text = clean_text_for_tts(text)
         
         if not text or len(text) < 2:
-            return jsonify({"error": "Text trống"}), 400
+            return Response(b'', mimetype="audio/mpeg")  # Return empty audio instead of error
         
-        # Remove markdown and special patterns
-        text = re.sub(r'[*#_`~]', '', text)
-        # Remove patterns like "A -", "B -", "C -" at the start
-        text = re.sub(r'^[A-Z]\s*-\s*', '', text)
-        # Remove double quotes
-        text = text.replace('"', '')
-        # Replace / with space (e.g., "was/were" -> "was were")
-        text = text.replace('/', ' ')
-        # Remove ellipsis (...) for cleaner speech
-        text = text.replace('...', ' ')
-        text = text.strip()
-        
-        if not text:
-            return jsonify({"error": "Text trống"}), 400
-        
+        rate = "+15%" if lang == 'vi' else "+0%"
         cache_key = get_cache_key(text, lang, rate)
+        
+        # Check cache first
         cached_audio = audio_cache.get(cache_key)
         if cached_audio:
-            return send_file(io.BytesIO(cached_audio), mimetype="audio/mpeg", as_attachment=False)
+            return Response(cached_audio, mimetype="audio/mpeg")
         
-        audio_data = generate_tts_audio(text, lang, rate)
+        # Generate audio
+        audio_data = generate_tts_audio_simple(text, lang, rate)
         
         if audio_data:
             audio_cache.set(cache_key, audio_data)
-            return send_file(io.BytesIO(audio_data), mimetype="audio/mpeg", as_attachment=False)
+            return Response(audio_data, mimetype="audio/mpeg")
         else:
-            return jsonify({"error": "Không thể tạo audio"}), 500
+            return Response(b'', mimetype="audio/mpeg")  # Return empty on failure
+            
     except Exception as e:
         log_security_event('TTS_SINGLE_ERROR', f"TTS single failed: {str(e)[:100]}")
-        return jsonify({"error": "Lỗi tạo audio"}), 500
+        return Response(b'', mimetype="audio/mpeg")
 
 
 @tts_bp.route("/api/tts", methods=["POST"])
@@ -129,44 +136,32 @@ def tts():
     """API endpoint để tạo audio cho 1 đoạn text"""
     try:
         data = request.json or {}
-        text = sanitize_input(data.get("text", ""), max_length=1000)
+        text = sanitize_input(data.get("text", ""), max_length=500)
         lang = data.get("lang", "vi")
         
         if lang not in ['vi', 'en']:
             lang = 'vi'
         
-        if not text:
-            return jsonify({"error": "Text trống"}), 400
-        
-        # Remove markdown and special patterns
-        text = re.sub(r'[*#_`~]', '', text)
-        # Remove patterns like "A -", "B -", "C -" at the start
-        text = re.sub(r'^[A-Z]\s*-\s*', '', text)
-        # Remove double quotes
-        text = text.replace('"', '')
-        # Replace / with space (e.g., "was/were" -> "was were")
-        text = text.replace('/', ' ')
-        # Remove ellipsis (...) for cleaner speech
-        text = text.replace('...', ' ')
-        text = text.strip()
+        text = clean_text_for_tts(text)
         
         if not text:
-            return jsonify({"error": "Text trống"}), 400
+            return Response(b'', mimetype="audio/mpeg")
         
         rate = "+15%" if lang == 'vi' else "+0%"
-        
         cache_key = get_cache_key(text, lang, rate)
+        
         cached_audio = audio_cache.get(cache_key)
         if cached_audio:
-            return send_file(io.BytesIO(cached_audio), mimetype="audio/mpeg", as_attachment=False)
+            return Response(cached_audio, mimetype="audio/mpeg")
         
-        audio_data = generate_tts_audio(text, lang, rate)
+        audio_data = generate_tts_audio_simple(text, lang, rate)
         
         if audio_data:
             audio_cache.set(cache_key, audio_data)
-            return send_file(io.BytesIO(audio_data), mimetype="audio/mpeg", as_attachment=False)
+            return Response(audio_data, mimetype="audio/mpeg")
         else:
-            return jsonify({"error": "Không thể tạo audio"}), 500
+            return Response(b'', mimetype="audio/mpeg")
+            
     except Exception as e:
         log_security_event('TTS_ERROR', f"TTS failed: {str(e)[:100]}")
-        return jsonify({"error": "Lỗi tạo audio"}), 500
+        return Response(b'', mimetype="audio/mpeg")

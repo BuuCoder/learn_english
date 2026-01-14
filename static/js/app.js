@@ -79,6 +79,14 @@ let isPlayingQueue = false;
 let ttsCache = new Map();
 let lastPrefetchedSegments = 0;
 
+// Stream voice state
+let isStreamVoiceEnabled = true; // Phát voice song song với stream text (auto play)
+let streamVoiceQueue = [];
+let isPlayingStreamVoice = false;
+let lastSpokenSegmentIndex = -1;
+let streamVoiceAborted = false;
+let queuedSegmentKeys = new Set(); // Track segments already queued
+
 // ==================== SVG ICONS ====================
 const svgIcons = {
     user: `<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>`,
@@ -796,6 +804,17 @@ function toggleAutoPlay() {
     toggle.classList.toggle('active', isAutoPlayMode);
 }
 
+function toggleStreamVoice() {
+    isStreamVoiceEnabled = !isStreamVoiceEnabled;
+    const toggle = document.getElementById('streamVoiceToggle');
+    toggle.classList.toggle('active', isStreamVoiceEnabled);
+    
+    // Stop current stream voice if disabled
+    if (!isStreamVoiceEnabled) {
+        stopStreamVoice();
+    }
+}
+
 
 // ==================== TTS FUNCTIONS ====================
 
@@ -969,25 +988,367 @@ function clearTTSCache() {
     });
     ttsCache.clear();
     lastPrefetchedSegments = 0;
+    // Reset stream voice state
+    streamVoiceQueue = [];
+    isPlayingStreamVoice = false;
+    lastSpokenSegmentIndex = -1;
+    streamVoiceAborted = false;
+    queuedSegmentKeys.clear();
+}
+
+// ==================== STREAM VOICE FUNCTIONS ====================
+
+function stopStreamVoice() {
+    streamVoiceAborted = true;
+    isPlayingStreamVoice = false;
+    streamVoiceQueue = [];
+    if (currentAudio) {
+        currentAudio.pause();
+        currentAudio.currentTime = 0;
+    }
+}
+
+// Split text into chunks based on punctuation (. or ,)
+// First chunk: max 15 words, cut before . or ,
+// Next chunks: cut at . or , to avoid breaking mid-sentence
+function splitIntoChunks(text, lang) {
+    if (!text || !text.trim()) return [];
+    
+    text = text.trim();
+    const chunks = [];
+    
+    // First chunk: max 15 words or cut at first . or ,
+    const words = text.split(/\s+/);
+    
+    if (words.length <= 15) {
+        // Short text, return as single chunk
+        return [{ text: text, lang }];
+    }
+    
+    // Find first . or , within first 15 words
+    let firstChunkEnd = -1;
+    let charCount = 0;
+    
+    for (let i = 0; i < Math.min(words.length, 15); i++) {
+        charCount += words[i].length + 1; // +1 for space
+        const word = words[i];
+        
+        // Check if word ends with . or ,
+        if (word.endsWith('.') || word.endsWith(',') || word.endsWith('!') || word.endsWith('?')) {
+            firstChunkEnd = charCount - 1;
+            break;
+        }
+    }
+    
+    // If no punctuation found in first 15 words, take first 15 words
+    if (firstChunkEnd === -1) {
+        const first15 = words.slice(0, 15).join(' ');
+        chunks.push({ text: first15, lang });
+        text = words.slice(15).join(' ');
+    } else {
+        const firstChunk = text.substring(0, firstChunkEnd).trim();
+        if (firstChunk) {
+            chunks.push({ text: firstChunk, lang });
+        }
+        text = text.substring(firstChunkEnd).trim();
+        // Remove leading punctuation
+        text = text.replace(/^[.,!?\s]+/, '').trim();
+    }
+    
+    // Remaining text: split by . or , 
+    if (text) {
+        // Split by sentence endings (. ! ?) or comma
+        const sentences = text.split(/(?<=[.!?,])\s+/);
+        
+        for (const sentence of sentences) {
+            const trimmed = sentence.trim();
+            if (trimmed && trimmed.length > 1) {
+                chunks.push({ text: trimmed, lang });
+            }
+        }
+    }
+    
+    // If no chunks created, return original as single chunk
+    if (chunks.length === 0) {
+        return [{ text: text.trim(), lang }];
+    }
+    
+    return chunks;
+}
+
+// Pre-fetch audio with 5s timeout and 1 retry
+async function prefetchAudio(text, lang) {
+    const cacheKey = `stream_${lang}:${text.substring(0, 50)}`;
+    const cached = ttsCache.get(cacheKey);
+    if (cached && cached !== 'fetching') return cached;
+    
+    ttsCache.set(cacheKey, 'fetching');
+    
+    // Try up to 2 times (initial + 1 retry)
+    for (let attempt = 0; attempt < 2; attempt++) {
+        try {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 5000); // 5s timeout
+            
+            const res = await fetch('/api/tts/single', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ text, lang }),
+                signal: controller.signal
+            });
+            
+            clearTimeout(timeoutId);
+            
+            if (res.ok) {
+                const blob = await res.blob();
+                if (blob.size > 0) {
+                    const url = URL.createObjectURL(blob);
+                    ttsCache.set(cacheKey, url);
+                    return url;
+                }
+            }
+        } catch (e) {
+            if (e.name === 'AbortError' && attempt === 0) {
+                console.log('TTS timeout, retrying...');
+                continue;
+            }
+            if (e.name !== 'AbortError') {
+                console.error('Prefetch audio error:', e);
+            }
+        }
+        break;
+    }
+    
+    ttsCache.delete(cacheKey);
+    return null;
+}
+
+async function processStreamVoice(text) {
+    if (!isStreamVoiceEnabled || streamVoiceAborted) return;
+    
+    const segments = splitByLanguage(text);
+    if (segments.length === 0) return;
+    
+    // Check for completed segments
+    const tagPattern = /\[(Vietsub|Engsub)\]/gi;
+    const tags = text.match(tagPattern) || [];
+    const completedSegments = Math.max(0, tags.length - 1);
+    
+    // Queue new segments
+    for (let i = 0; i < completedSegments && i < segments.length; i++) {
+        const seg = segments[i];
+        if (!seg.text || seg.text.trim().length < 2) continue;
+        
+        const queueKey = `seg_${i}`;
+        if (queuedSegmentKeys.has(queueKey)) continue;
+        
+        queuedSegmentKeys.add(queueKey);
+        
+        // Split into chunks and queue sequentially
+        const chunks = splitIntoChunks(seg.text, seg.lang);
+        
+        for (let j = 0; j < chunks.length; j++) {
+            streamVoiceQueue.push({
+                key: `seg_${i}_chunk_${j}`,
+                segIndex: i,
+                chunkIndex: j,
+                text: chunks[j].text,
+                lang: chunks[j].lang,
+                fetching: false,
+                ready: false
+            });
+        }
+    }
+    
+    if (!isPlayingStreamVoice && streamVoiceQueue.length > 0) {
+        playStreamVoiceQueue();
+    }
+}
+
+// Fetch manager - keeps 2 concurrent requests running
+let activeFetches = 0;
+const MAX_CONCURRENT_FETCHES = 2;
+
+async function fetchNextChunks() {
+    if (streamVoiceAborted) return;
+    
+    // Find chunks that need fetching
+    for (const item of streamVoiceQueue) {
+        if (activeFetches >= MAX_CONCURRENT_FETCHES) break;
+        if (item.fetching || item.ready) continue;
+        
+        const cacheKey = `stream_${item.lang}:${item.text.substring(0, 50)}`;
+        const cached = ttsCache.get(cacheKey);
+        
+        if (cached && cached !== 'fetching') {
+            item.ready = true;
+            continue;
+        }
+        
+        if (cached === 'fetching') {
+            item.fetching = true;
+            continue;
+        }
+        
+        // Start fetching this chunk
+        item.fetching = true;
+        activeFetches++;
+        
+        prefetchAudio(item.text, item.lang).then(() => {
+            activeFetches--;
+            item.ready = true;
+            // Trigger next fetch when one completes
+            if (!streamVoiceAborted) {
+                fetchNextChunks();
+            }
+        }).catch(() => {
+            activeFetches--;
+            item.ready = true; // Mark as ready even on error to continue
+            if (!streamVoiceAborted) {
+                fetchNextChunks();
+            }
+        });
+    }
+}
+
+async function playStreamVoiceQueue() {
+    if (isPlayingStreamVoice || streamVoiceAborted) return;
+    isPlayingStreamVoice = true;
+    activeFetches = 0;
+    
+    // Start fetching first chunks
+    fetchNextChunks();
+    
+    while (streamVoiceQueue.length > 0 && !streamVoiceAborted) {
+        const item = streamVoiceQueue[0];
+        if (!item) break;
+        
+        const cacheKey = `stream_${item.lang}:${item.text.substring(0, 50)}`;
+        
+        // Wait for audio to be ready (max 5s)
+        let audioUrl = null;
+        for (let w = 0; w < 50 && !streamVoiceAborted; w++) {
+            const cached = ttsCache.get(cacheKey);
+            if (cached && cached !== 'fetching') {
+                audioUrl = cached;
+                break;
+            }
+            await new Promise(r => setTimeout(r, 100));
+        }
+        
+        // Remove from queue
+        streamVoiceQueue.shift();
+        
+        // Trigger more fetches
+        fetchNextChunks();
+        
+        if (!audioUrl || streamVoiceAborted) continue;
+        
+        // Play audio sequentially
+        await new Promise((resolve) => {
+            if (streamVoiceAborted) {
+                resolve();
+                return;
+            }
+            
+            currentAudio = new Audio(audioUrl);
+            currentAudio.onended = resolve;
+            currentAudio.onerror = resolve;
+            currentAudio.play().catch(resolve);
+        });
+    }
+    
+    isPlayingStreamVoice = false;
+    activeFetches = 0;
+}
+
+// Queue final segment when stream completes
+async function queueFinalStreamVoiceSegment(text) {
+    if (!isStreamVoiceEnabled || streamVoiceAborted) return;
+    
+    const segments = splitByLanguage(text);
+    if (segments.length === 0) return;
+    
+    const lastIndex = segments.length - 1;
+    const seg = segments[lastIndex];
+    if (seg && seg.text && seg.text.trim().length >= 2) {
+        const queueKey = `seg_${lastIndex}`;
+        
+        if (!queuedSegmentKeys.has(queueKey)) {
+            queuedSegmentKeys.add(queueKey);
+            
+            // Split into chunks
+            const chunks = splitIntoChunks(seg.text, seg.lang);
+            
+            for (let j = 0; j < chunks.length; j++) {
+                const chunk = chunks[j];
+                const chunkKey = `seg_${lastIndex}_chunk_${j}`;
+                
+                prefetchAudio(chunk.text, chunk.lang);
+                
+                streamVoiceQueue.push({
+                    key: chunkKey,
+                    index: lastIndex,
+                    chunkIndex: j,
+                    text: chunk.text,
+                    lang: chunk.lang
+                });
+            }
+        }
+    }
+    
+    if (!isPlayingStreamVoice && streamVoiceQueue.length > 0) {
+        playStreamVoiceQueue();
+    }
 }
 
 async function speakEnglish(text) {
     stopSpeaking();
+    isSpeaking = true;
+    
     try {
-        const response = await fetch('/api/tts', {
+        // For single English word/phrase, just call API directly with lang='en'
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 5000);
+        
+        const response = await fetch('/api/tts/single', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ text: text, lang: 'en', speed: 1.0 })
+            body: JSON.stringify({ text: text, lang: 'en' }),
+            signal: controller.signal
         });
-        if (!response.ok) return;
-        const audioBlob = await response.blob();
-        const audioUrl = URL.createObjectURL(audioBlob);
-        currentAudio = new Audio(audioUrl);
-        currentAudio.onended = () => URL.revokeObjectURL(audioUrl);
-        currentAudio.play();
+        
+        clearTimeout(timeoutId);
+        
+        if (response.ok && isSpeaking) {
+            const audioBlob = await response.blob();
+            if (audioBlob.size > 0) {
+                const audioUrl = URL.createObjectURL(audioBlob);
+                
+                await new Promise((resolve) => {
+                    currentAudio = new Audio(audioUrl);
+                    currentAudio.onended = () => {
+                        URL.revokeObjectURL(audioUrl);
+                        resolve();
+                    };
+                    currentAudio.onerror = () => {
+                        URL.revokeObjectURL(audioUrl);
+                        resolve();
+                    };
+                    currentAudio.play().catch(() => {
+                        URL.revokeObjectURL(audioUrl);
+                        resolve();
+                    });
+                });
+            }
+        }
     } catch (e) {
-        console.error('TTS error:', e);
+        if (e.name !== 'AbortError') {
+            console.error('TTS error:', e);
+        }
     }
+    
+    isSpeaking = false;
 }
 
 function stopSpeaking() {
@@ -1031,74 +1392,95 @@ async function speakTextWithCallback(text, onComplete, btn) {
         return;
     }
 
-    // Look-ahead fetch: fetch next 2 segments while playing current
-    const LOOK_AHEAD = 2;
+    // Flatten segments into chunks (max 10 words each)
+    const allChunks = [];
+    for (const seg of segments) {
+        if (!seg.text || seg.text.trim().length < 2) continue;
+        const chunks = splitIntoChunks(seg.text, seg.lang);
+        allChunks.push(...chunks);
+    }
 
-    async function fetchSegmentIfNeeded(index) {
-        if (index >= segments.length) return;
-        const seg = segments[index];
-        if (!seg.text || seg.text.trim().length < 2) return;
+    // Look-ahead fetch: fetch next chunks while playing current
+    // Pipeline fetch - keep 2 concurrent requests, fetch next when one completes
+    let fetchIndex = 0;
+    let activeFetchCount = 0;
+    const MAX_FETCHES = 2;
 
-        const cacheKey = `${seg.lang}:${seg.text}`;
-        if (ttsCache.has(cacheKey)) return; // Already fetching or cached
+    async function fetchChunk(index) {
+        if (index >= allChunks.length) return;
+        const chunk = allChunks[index];
+        const cacheKey = `${chunk.lang}:${chunk.text.substring(0, 50)}`;
+        
+        if (ttsCache.has(cacheKey)) {
+            // Already cached or fetching, try next
+            fetchNextAvailable();
+            return;
+        }
 
         ttsCache.set(cacheKey, 'fetching');
+        activeFetchCount++;
 
-        try {
-            const res = await fetch('/api/tts/single', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ text: seg.text, lang: seg.lang })
-            });
-            if (res.ok) {
-                const blob = await res.blob();
-                ttsCache.set(cacheKey, URL.createObjectURL(blob));
-            } else {
-                ttsCache.delete(cacheKey);
+        // Try up to 2 times with 5s timeout
+        for (let attempt = 0; attempt < 2; attempt++) {
+            try {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 5000);
+                
+                const res = await fetch('/api/tts/single', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text: chunk.text, lang: chunk.lang }),
+                    signal: controller.signal
+                });
+                
+                clearTimeout(timeoutId);
+                
+                if (res.ok) {
+                    const blob = await res.blob();
+                    if (blob.size > 0) {
+                        ttsCache.set(cacheKey, URL.createObjectURL(blob));
+                        break;
+                    }
+                }
+            } catch (e) {
+                if (e.name === 'AbortError' && attempt === 0) continue;
             }
-        } catch {
+            break;
+        }
+        
+        if (ttsCache.get(cacheKey) === 'fetching') {
             ttsCache.delete(cacheKey);
+        }
+        
+        activeFetchCount--;
+        fetchNextAvailable();
+    }
+
+    function fetchNextAvailable() {
+        while (activeFetchCount < MAX_FETCHES && fetchIndex < allChunks.length) {
+            const idx = fetchIndex++;
+            fetchChunk(idx);
         }
     }
 
-    // Play segments sequentially
-    for (let i = 0; i < segments.length; i++) {
+    // Start pipeline - fetch first 2 chunks
+    fetchNextAvailable();
+
+    // Play chunks sequentially 1 -> n
+    for (let i = 0; i < allChunks.length; i++) {
         if (!isSpeaking) break;
 
-        // Start fetching next segments (look-ahead)
-        for (let j = 1; j <= LOOK_AHEAD; j++) {
-            fetchSegmentIfNeeded(i + j);
-        }
-
-        const seg = segments[i];
-        if (!seg.text || seg.text.trim().length < 2) {
-            continue;
-        }
+        const chunk = allChunks[i];
 
         try {
-            const cacheKey = `${seg.lang}:${seg.text}`;
+            const cacheKey = `${chunk.lang}:${chunk.text.substring(0, 50)}`;
             let audioUrl = null;
 
-            // Wait for cache (prefetch or look-ahead)
-            for (let w = 0; w < 150 && isSpeaking; w++) { // Max 15 seconds
+            // Wait for cache (max 5s)
+            for (let w = 0; w < 50 && isSpeaking; w++) {
                 const cached = ttsCache.get(cacheKey);
                 if (cached && cached !== 'fetching') {
                     audioUrl = cached;
-                    ttsCache.delete(cacheKey);
-                    break;
-                }
-                if (cached === undefined) {
-                    // Not in cache, fetch now
-                    ttsCache.set(cacheKey, 'fetching');
-                    const res = await fetch('/api/tts/single', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ text: seg.text, lang: seg.lang })
-                    });
-                    if (res.ok) {
-                        const blob = await res.blob();
-                        audioUrl = URL.createObjectURL(blob);
-                    }
                     ttsCache.delete(cacheKey);
                     break;
                 }
@@ -1127,7 +1509,7 @@ async function speakTextWithCallback(text, onComplete, btn) {
             });
 
         } catch (e) {
-            console.error(`[TTS] Segment ${i} error:`, e);
+            console.error(`[TTS] Chunk ${i} error:`, e);
         }
     }
 
@@ -1151,10 +1533,7 @@ function toggleAudio(text, btn) {
 // ==================== INPUT FUNCTIONS ====================
 function setInputLocked(locked) {
     isProcessing = locked;
-    messageInput.disabled = locked;
-    if (!locked) {
-        messageInput.focus();
-    }
+    // Don't disable input - user can always type
 }
 
 function updateSendButtonVisibility() {
@@ -1168,11 +1547,23 @@ function updateSendButtonVisibility() {
 }
 
 function clearMessageText() {
+    // Temporarily enable input if disabled
+    const wasDisabled = messageInput.disabled;
+    if (wasDisabled) {
+        messageInput.disabled = false;
+    }
+    
     messageInput.value = '';
     messageInput.style.height = '24px';
     messageInput.classList.remove('multiline');
     updateSendButtonVisibility();
-    messageInput.focus();
+    
+    // Restore disabled state if it was disabled
+    if (wasDisabled) {
+        messageInput.disabled = true;
+    } else {
+        messageInput.focus();
+    }
 }
 
 function showRecordingControls(show) {
@@ -1781,13 +2172,13 @@ async function retryMessage(messageId, content) {
                             fullResponse += data.content;
                             contentDiv.innerHTML = formatMessageContent(fullResponse, true) + '<span class="streaming-cursor"></span>';
                             window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
-                            // Pre-fetch TTS for completed segments
-                            prefetchTTS(fullResponse);
+                            // Stream voice: play audio as segments complete
+                            processStreamVoice(fullResponse);
                         } else if (data.type === 'done') {
                             tokenInfo = data.tokens || {};
                             assistantMsgId = data.assistant_message_id;
-                            // Pre-fetch last segment when stream completes
-                            prefetchLastSegment(fullResponse);
+                            // Queue final segment for stream voice
+                            queueFinalStreamVoiceSegment(fullResponse);
                         } else if (data.type === 'error') {
                             throw new Error(data.error);
                         }
@@ -1804,17 +2195,9 @@ async function retryMessage(messageId, content) {
         addMessageToUI(fullResponse, 'assistant', tokenInfo);
         loadConversations();
 
-        // Auto play if enabled
-        if (isAutoPlayMode) {
-            const lastMsg = chatMessages.querySelector('.message.assistant:last-child .btn-audio-toggle');
-            if (lastMsg) {
-                speakTextWithCallback(fullResponse, () => setInputLocked(false), lastMsg);
-            } else {
-                setInputLocked(false);
-            }
-        } else {
-            setInputLocked(false);
-        }
+        // Don't auto play again since stream voice already played
+        // Unlock input immediately - user can type while listening
+        setInputLocked(false);
 
     } catch (e) {
         const streamMsg = document.getElementById('streaming-message');
@@ -1855,7 +2238,28 @@ async function retryMessage(messageId, content) {
 async function sendMessage() {
     const msg = messageInput.value.trim();
     if (!msg || isProcessing) return;
-    if (isRecording) recognition.stop();
+    
+    // Stop recording first and reset state immediately
+    if (isRecording) {
+        manualStop = true;
+        isRecording = false;
+        micBtn.classList.remove('recording');
+        accumulatedText = ''; // Clear accumulated text
+        if (recognition) {
+            try {
+                recognition.stop();
+            } catch (e) {
+                // Ignore errors when stopping
+            }
+        }
+    }
+
+    // Clear input BEFORE locking
+    messageInput.value = '';
+    messageInput.style.height = '24px';
+    messageInput.classList.remove('multiline');
+    sendBtn.classList.remove('has-text');
+    updateSendButtonVisibility();
 
     setInputLocked(true);
     showStopButton();
@@ -1864,10 +2268,6 @@ async function sendMessage() {
     streamAbortController = new AbortController();
 
     addMessageToUI(msg, 'user');
-    messageInput.value = '';
-    messageInput.style.height = '24px';
-    messageInput.classList.remove('multiline');
-    sendBtn.classList.remove('has-text');
 
     welcomeSection.style.display = 'none';
     chatMessages.classList.add('active');
@@ -1933,13 +2333,13 @@ async function sendMessage() {
                             fullResponse += data.content;
                             contentDiv.innerHTML = formatMessageContent(fullResponse) + '<span class="streaming-cursor"></span>';
                             window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
-                            // Pre-fetch TTS for completed segments
-                            prefetchTTS(fullResponse);
+                            // Stream voice: play audio as segments complete
+                            processStreamVoice(fullResponse);
                         } else if (data.type === 'done') {
                             tokenInfo = data.tokens || {};
                             assistantMsgId = data.assistant_message_id;
-                            // Pre-fetch last segment when stream completes
-                            prefetchLastSegment(fullResponse);
+                            // Queue final segment for stream voice
+                            queueFinalStreamVoiceSegment(fullResponse);
 
                             if (data.conversation_id && data.conversation_id !== currentConversationId) {
                                 currentConversationId = data.conversation_id;
@@ -1971,21 +2371,15 @@ async function sendMessage() {
         loadConversations();
         renderConversationList();
 
-        // Auto play if enabled
-        if (isAutoPlayMode) {
-            const lastMsg = chatMessages.querySelector('.message.assistant:last-child .btn-audio-toggle');
-            if (lastMsg) {
-                speakTextWithCallback(fullResponse, () => setInputLocked(false), lastMsg);
-            } else {
-                setInputLocked(false);
-            }
-        } else {
-            setInputLocked(false);
-        }
+        // Unlock input immediately - user can type while listening
+        setInputLocked(false);
 
     } catch (e) {
         const streamMsg = document.getElementById('streaming-message');
         if (streamMsg) streamMsg.remove();
+        
+        // Stop stream voice on error
+        stopStreamVoice();
 
         if (e.name === 'AbortError' || e.message.includes('body stream')) {
             if (fullResponse && assistantMsgId) {
@@ -2020,8 +2414,21 @@ async function sendMessage() {
 }
 
 function sendQuickMessage(msg) {
-    messageInput.value = msg;
-    sendMessage();
+    // Close options menu
+    document.getElementById('optionsMenu').classList.remove('active');
+    document.getElementById('optionsBtn').classList.remove('active');
+    
+    // If message ends with ": " or ":" - just fill input and focus (user needs to add more)
+    if (msg.endsWith(': ') || msg.endsWith(':')) {
+        messageInput.value = msg;
+        messageInput.focus();
+        // Move cursor to end
+        messageInput.setSelectionRange(msg.length, msg.length);
+    } else {
+        // Send immediately
+        messageInput.value = msg;
+        sendMessage();
+    }
 }
 
 
@@ -2041,19 +2448,27 @@ if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
     };
 
     recognition.onresult = (e) => {
+        // Don't update input if processing (message already sent)
+        if (isProcessing) return;
+        
         const transcript = Array.from(e.results).map(r => r[0].transcript).join('');
         messageInput.value = accumulatedText + (accumulatedText ? ' ' : '') + transcript;
         autoResizeTextarea();
     };
 
     recognition.onend = () => {
-        isRecording = false;
-        micBtn.classList.remove('recording');
+        // Only update state if not already handled by sendMessage
+        if (isRecording) {
+            isRecording = false;
+            micBtn.classList.remove('recording');
+        }
 
-        // Show X button if has text
-        updateSendButtonVisibility();
+        // Show X button if has text (only if not processing)
+        if (!isProcessing) {
+            updateSendButtonVisibility();
+        }
 
-        if (manualStop && messageInput.value.trim()) {
+        if (manualStop && messageInput.value.trim() && !isProcessing) {
             if (isAutoSendMode) {
                 sendMessage();
             }
@@ -2113,14 +2528,38 @@ document.addEventListener('mouseup', (e) => {
     }, 10);
 });
 
-// Click on data-speak elements (Table cells, List items)
+// Text selection for vocabulary on mobile (touch devices)
+document.addEventListener('touchend', (e) => {
+    // Delay to allow selection to complete
+    setTimeout(() => {
+        if (vocabPopup.contains(e.target)) return;
+        handleTextSelection();
+    }, 300);
+});
+
+// Also listen for selection changes (better mobile support)
+document.addEventListener('selectionchange', () => {
+    // Debounce to avoid too many calls
+    clearTimeout(window.selectionChangeTimeout);
+    window.selectionChangeTimeout = setTimeout(() => {
+        const selection = window.getSelection();
+        const text = selection.toString().trim();
+        // Only show popup if there's a valid English selection
+        if (text && /^[a-zA-Z\s\-'.,!?]+$/.test(text) && text.length > 0 && text.length < 100) {
+            handleTextSelection();
+        }
+    }, 200);
+});
+
+// Click on data-speak elements (Table cells, List items) - speak English only
 document.addEventListener('click', (e) => {
     const target = e.target.closest('[data-speak]');
     // Avoid conflict with specific audio buttons if any
     if (target && !e.target.closest('.btn-audio-toggle')) {
+        e.stopPropagation(); // Prevent duplicate handlers
         const text = decodeURIComponent(target.dataset.speak);
         if (text) {
-            speakTextWithCallback(text);
+            speakEnglish(text);
         }
     }
 });
@@ -2199,41 +2638,59 @@ function setupMobileKeyboard() {
 
     // Use visualViewport API for better keyboard detection
     if (window.visualViewport) {
-        window.visualViewport.addEventListener('resize', () => {
-            const keyboardHeight = window.innerHeight - window.visualViewport.height;
+        let lastHeight = window.visualViewport.height;
+        
+        const handleViewportChange = () => {
+            const currentHeight = window.visualViewport.height;
+            const keyboardHeight = window.innerHeight - currentHeight;
+            
+            // Only adjust if keyboard is actually open (significant height change)
             if (keyboardHeight > 100) {
-                // Keyboard is open
-                inputSection.style.bottom = keyboardHeight + 'px';
-            } else {
-                // Keyboard is closed
+                // Keyboard is open - position input above keyboard
+                inputSection.style.position = 'fixed';
                 inputSection.style.bottom = '0';
+                inputSection.style.transform = `translateY(-${keyboardHeight - window.visualViewport.offsetTop}px)`;
+            } else {
+                // Keyboard is closed - reset position
+                inputSection.style.transform = 'translateZ(0)';
             }
-        });
+            
+            lastHeight = currentHeight;
+        };
+
+        window.visualViewport.addEventListener('resize', handleViewportChange);
+        window.visualViewport.addEventListener('scroll', handleViewportChange);
     }
 
-    // Fallback for older browsers
+    // Handle focus/blur for additional stability
     input.addEventListener('focus', () => {
         if (window.innerWidth <= 768) {
+            // Small delay to let keyboard appear
             setTimeout(() => {
-                input.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                // Scroll to bottom of chat if near bottom
+                const chatMessages = document.getElementById('chatMessages');
+                if (chatMessages && chatMessages.classList.contains('active')) {
+                    const isNearBottom = (window.innerHeight + window.scrollY) >= (document.body.offsetHeight - 200);
+                    if (isNearBottom) {
+                        window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+                    }
+                }
             }, 300);
+        }
+    });
+
+    input.addEventListener('blur', () => {
+        if (window.innerWidth <= 768) {
+            // Reset input section position when keyboard closes
+            setTimeout(() => {
+                inputSection.style.transform = 'translateZ(0)';
+            }, 100);
         }
     });
 }
 
 // Listen for resize
 window.addEventListener('resize', checkMobileView);
-
-// Event delegation for click-to-speak on elements with data-speak attribute
-document.addEventListener('click', function (e) {
-    const speakElement = e.target.closest('[data-speak]');
-    if (speakElement) {
-        const text = decodeURIComponent(speakElement.dataset.speak);
-        if (text) {
-            speakEnglish(text);
-        }
-    }
-});
 
 // ==================== INITIALIZATION ====================
 (async function init() {

@@ -1587,6 +1587,12 @@ body {
     color: #1f1f1f;
 }
 
+.options-menu-divider {
+    height: 1px;
+    background: #e0e0e0;
+    margin: 8px 0;
+}
+
 .toggle-switch {
     width: 40px;
     height: 22px;
@@ -2022,6 +2028,12 @@ body {
         padding-bottom: calc(20px + env(safe-area-inset-bottom));
         background: #f8f9fa;
         z-index: 80;
+        position: fixed;
+        bottom: 0;
+        right: 0;
+        /* Prevent jumping when scrolling */
+        transform: translateZ(0);
+        -webkit-transform: translateZ(0);
     }
 
     .input-section.sidebar-collapsed {
@@ -2040,7 +2052,7 @@ body {
     }
 
     .input-box textarea {
-        font-size: 0.95rem;
+        font-size: 16px; /* Prevent iOS auto-zoom on focus */
         height: 22px;
         line-height: 22px;
     }
