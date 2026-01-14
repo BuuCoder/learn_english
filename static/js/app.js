@@ -1019,7 +1019,6 @@ async function speakTextWithCallback(text, onComplete, btn) {
     }
 
     const segments = splitByLanguage(text);
-    console.log('[TTS] Total segments:', segments.length);
 
     if (segments.length === 0) {
         isSpeaking = false;
@@ -1073,11 +1072,8 @@ async function speakTextWithCallback(text, onComplete, btn) {
 
         const seg = segments[i];
         if (!seg.text || seg.text.trim().length < 2) {
-            console.log(`[TTS] Skipping segment ${i}: too short`);
             continue;
         }
-
-        console.log(`[TTS] Playing segment ${i}/${segments.length}`);
 
         try {
             const cacheKey = `${seg.lang}:${seg.text}`;
@@ -1110,7 +1106,6 @@ async function speakTextWithCallback(text, onComplete, btn) {
             }
 
             if (!audioUrl || !isSpeaking) {
-                console.log(`[TTS] Segment ${i} skipped`);
                 continue;
             }
 
@@ -1136,7 +1131,6 @@ async function speakTextWithCallback(text, onComplete, btn) {
         }
     }
 
-    console.log('[TTS] All done');
     isSpeaking = false;
     if (btn) {
         btn.innerHTML = svgIcons.play;
