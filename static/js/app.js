@@ -2636,53 +2636,45 @@ function setupMobileKeyboard() {
 
     if (!input || !inputSection) return;
 
-    // Use visualViewport API for better keyboard detection
+    // Use visualViewport API for iOS keyboard handling
     if (window.visualViewport) {
-        let lastHeight = window.visualViewport.height;
-        
         const handleViewportChange = () => {
-            const currentHeight = window.visualViewport.height;
-            const keyboardHeight = window.innerHeight - currentHeight;
+            if (window.innerWidth > 768) return; // Only on mobile
             
-            // Only adjust if keyboard is actually open (significant height change)
-            if (keyboardHeight > 100) {
-                // Keyboard is open - position input above keyboard
-                inputSection.style.position = 'fixed';
-                inputSection.style.bottom = '0';
-                inputSection.style.transform = `translateY(-${keyboardHeight - window.visualViewport.offsetTop}px)`;
-            } else {
-                // Keyboard is closed - reset position
-                inputSection.style.transform = 'translateZ(0)';
-            }
+            // Position input at bottom of visible viewport
+            const offsetTop = window.visualViewport.offsetTop;
+            const viewportHeight = window.visualViewport.height;
             
-            lastHeight = currentHeight;
+            // Calculate where input should be (at bottom of visible area)
+            inputSection.style.position = 'fixed';
+            inputSection.style.bottom = 'auto';
+            inputSection.style.top = `${offsetTop + viewportHeight - inputSection.offsetHeight}px`;
+            inputSection.style.transform = 'none';
         };
 
         window.visualViewport.addEventListener('resize', handleViewportChange);
         window.visualViewport.addEventListener('scroll', handleViewportChange);
     }
 
-    // Handle focus/blur for additional stability
+    // Handle focus for scrolling
     input.addEventListener('focus', () => {
         if (window.innerWidth <= 768) {
-            // Small delay to let keyboard appear
             setTimeout(() => {
-                // Scroll to bottom of chat if near bottom
                 const chatMessages = document.getElementById('chatMessages');
                 if (chatMessages && chatMessages.classList.contains('active')) {
-                    const isNearBottom = (window.innerHeight + window.scrollY) >= (document.body.offsetHeight - 200);
-                    if (isNearBottom) {
-                        window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
-                    }
+                    window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
                 }
             }, 300);
         }
     });
 
+    // Handle blur - reset position
     input.addEventListener('blur', () => {
         if (window.innerWidth <= 768) {
-            // Reset input section position when keyboard closes
             setTimeout(() => {
+                inputSection.style.position = 'fixed';
+                inputSection.style.bottom = '0';
+                inputSection.style.top = 'auto';
                 inputSection.style.transform = 'translateZ(0)';
             }, 100);
         }
