@@ -1,0 +1,22 @@
+{
+    "name": "Teacher Da Vinci",
+    "short_name": "Da Vinci AI",
+    "description": "Học tiếng Anh cùng AI Teacher Da Vinci",
+    "start_url": "/",
+    "display": "standalone",
+    "background_color": "#ffffff",
+    "theme_color": "#ffffff",
+    "orientation": "portrait-primary",
+    "icons": [
+        {
+            "src": "/static/images/logo.png",
+            "sizes": "192x192",
+            "type": "image/png"
+        },
+        {
+            "src": "/static/images/logo-512.png",
+            "sizes": "512x512",
+            "type": "image/png"
+        }
+    ]
+}

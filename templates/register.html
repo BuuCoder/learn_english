@@ -1,12 +1,27 @@
 <!DOCTYPE html>
 <html lang="vi">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Đăng ký - English Teacher AI</title>
     <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+
+    <!-- PWA settings -->
+    <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
+    <meta name="theme-color" content="#ffffff">
+    <link rel="icon" type="image/png" sizes="32x32" href="{{ url_for('static', filename='images/logo-32.png') }}">
+    <link rel="icon" type="image/png" sizes="16x16" href="{{ url_for('static', filename='images/logo-16.png') }}">
+    <link rel="apple-touch-icon" href="{{ url_for('static', filename='images/logo.png') }}">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
         body {
             font-family: 'Google Sans', sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -16,36 +31,43 @@
             justify-content: center;
             padding: 20px;
         }
+
         .register-container {
             background: white;
             border-radius: 20px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
             width: 100%;
             max-width: 420px;
             padding: 40px;
         }
+
         .logo {
             text-align: center;
             margin-bottom: 30px;
         }
+
         .logo h1 {
             font-size: 1.8rem;
             color: #1f1f1f;
             margin-bottom: 8px;
         }
+
         .logo p {
             color: #5f6368;
             font-size: 0.95rem;
         }
+
         .form-group {
             margin-bottom: 20px;
         }
+
         .form-group label {
             display: block;
             margin-bottom: 8px;
             color: #1f1f1f;
             font-weight: 500;
         }
+
         .form-group input {
             width: 100%;
             padding: 14px 16px;
@@ -55,10 +77,12 @@
             font-family: inherit;
             transition: border-color 0.2s;
         }
+
         .form-group input:focus {
             outline: none;
             border-color: #667eea;
         }
+
         .btn-register {
             width: 100%;
             padding: 14px;
@@ -72,15 +96,18 @@
             font-family: inherit;
             transition: transform 0.2s, box-shadow 0.2s;
         }
+
         .btn-register:hover {
             transform: translateY(-2px);
             box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
         }
+
         .btn-register:disabled {
             opacity: 0.7;
             cursor: not-allowed;
             transform: none;
         }
+
         .error-msg {
             background: #fee;
             color: #c00;
@@ -90,19 +117,23 @@
             font-size: 0.9rem;
             display: none;
         }
+
         .login-link {
             text-align: center;
             margin-top: 24px;
             color: #5f6368;
         }
+
         .login-link a {
             color: #667eea;
             text-decoration: none;
             font-weight: 500;
         }
+
         .login-link a:hover {
             text-decoration: underline;
         }
+
         .token-info {
             background: #f0f4ff;
             padding: 12px;
@@ -114,19 +145,22 @@
         }
     </style>
 </head>
+
 <body>
     <div class="register-container">
         <div class="logo">
+            <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Logo"
+                style="width: 80px; height: 80px; margin-bottom: 10px;">
             <h1>🎓 English Teacher AI</h1>
             <p>Tạo tài khoản mới</p>
         </div>
-        
+
         <div class="token-info">
             🎁 Đăng ký miễn phí - Nhận 100,000 tokens
         </div>
-        
+
         <div class="error-msg" id="errorMsg"></div>
-        
+
         <form id="registerForm">
             <div class="form-group">
                 <label>Tên đăng nhập</label>
@@ -146,31 +180,31 @@
             </div>
             <button type="submit" class="btn-register" id="btnRegister">Đăng ký</button>
         </form>
-        
+
         <div class="login-link">
             Đã có tài khoản? <a href="/login">Đăng nhập</a>
         </div>
     </div>
-    
+
     <script>
         document.getElementById('registerForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const btn = document.getElementById('btnRegister');
             const errorMsg = document.getElementById('errorMsg');
-            
+
             const password = document.getElementById('password').value;
             const confirmPassword = document.getElementById('confirmPassword').value;
-            
+
             if (password !== confirmPassword) {
                 errorMsg.textContent = 'Mật khẩu xác nhận không khớp';
                 errorMsg.style.display = 'block';
                 return;
             }
-            
+
             btn.disabled = true;
             btn.textContent = 'Đang đăng ký...';
             errorMsg.style.display = 'none';
-            
+
             try {
                 const res = await fetch('/api/register', {
                     method: 'POST',
@@ -181,9 +215,9 @@
                         password: password
                     })
                 });
-                
+
                 const data = await res.json();
-                
+
                 if (data.success) {
                     window.location.href = '/';
                 } else {
@@ -194,10 +228,11 @@
                 errorMsg.textContent = 'Lỗi kết nối server';
                 errorMsg.style.display = 'block';
             }
-            
+
             btn.disabled = false;
             btn.textContent = 'Đăng ký';
         });
     </script>
 </body>
+
 </html>
