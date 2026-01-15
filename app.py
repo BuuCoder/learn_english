@@ -217,6 +217,13 @@ def add_security_headers(response):
 # ==================== MAIN ROUTES ====================
 
 @app.route("/")
+def home():
+    """Landing page - accessible to all users"""
+    if current_user.is_authenticated:
+        return redirect(url_for('index'))
+    return render_template("home.html")
+
+@app.route("/app")
 @login_required
 def index():
     return render_template("index.html")

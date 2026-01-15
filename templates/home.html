@@ -1,0 +1,808 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    
+    <!-- SEO Meta Tags -->
+    <title>Teacher Da Vinci - Học Tiếng Anh Cùng AI | Phương Pháp Hiệu Quả</title>
+    <meta name="description" content="Teacher Da Vinci - Nền tảng học tiếng Anh với AI thông minh. Luyện phát âm, từ vựng, ngữ pháp với công nghệ Trí tuệ nhân tạo AI. Miễn phí, hiệu quả, dễ sử dụng.">
+    <meta name="keywords" content="học tiếng Anh, AI teacher, phát âm tiếng Anh, từ vựng, ngữ pháp, luyện tập tiếng Anh">
+    <meta name="author" content="Teacher Da Vinci">
+    <meta name="robots" content="index, follow">
+    <meta name="language" content="Vietnamese">
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://teacherdavinci.com/">
+    <meta property="og:title" content="Teacher Da Vinci - Học Tiếng Anh Cùng AI">
+    <meta property="og:description" content="Nền tảng học tiếng Anh với AI thông minh. Luyện phát âm, từ vựng, ngữ pháp hiệu quả.">
+    <meta property="og:image" content="{{ url_for('static', filename='images/og-image.png') }}">
+    
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image">
+    <meta property="twitter:url" content="https://teacherdavinci.com/">
+    <meta property="twitter:title" content="Teacher Da Vinci - Học Tiếng Anh Cùng AI">
+    <meta property="twitter:description" content="Nền tảng học tiếng Anh với AI thông minh.">
+    <meta property="twitter:image" content="{{ url_for('static', filename='images/og-image.png') }}">
+    
+    <!-- Canonical URL -->
+    <link rel="canonical" href="https://teacherdavinci.com/">
+    
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+    
+    <!-- Styles -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/home.css') }}">
+    
+    <!-- PWA -->
+    <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
+    <meta name="theme-color" content="#ffffff">
+    <link rel="icon" type="image/png" sizes="32x32" href="{{ url_for('static', filename='images/logo-32.png') }}">
+    <link rel="icon" type="image/png" sizes="16x16" href="{{ url_for('static', filename='images/logo-16.png') }}">
+    <link rel="apple-touch-icon" href="{{ url_for('static', filename='images/logo.png') }}">
+    
+    <!-- Structured Data (Schema.org) -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "WebApplication",
+        "name": "Teacher Da Vinci",
+        "description": "Nền tảng học tiếng Anh với AI thông minh",
+        "url": "https://teacherdavinci.com",
+        "applicationCategory": "EducationalApplication",
+        "offers": {
+            "@type": "Offer",
+            "price": "0",
+            "priceCurrency": "VND"
+        },
+        "aggregateRating": {
+            "@type": "AggregateRating",
+            "ratingValue": "4.8",
+            "ratingCount": "1250"
+        }
+    }
+    </script>
+</head>
+
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="navbar-container">
+            <div class="navbar-logo">
+                <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Teacher Da Vinci Logo" class="logo-img">
+                <span>Teacher Da Vinci</span>
+            </div>
+            <div class="navbar-links">
+                <a href="#features" class="nav-link">Tính năng</a>
+                <a href="#how-it-works" class="nav-link">Cách dùng</a>
+                <a href="#testimonials" class="nav-link">Đánh giá</a>
+                <a href="#faq" class="nav-link">FAQ</a>
+                <a href="#pricing" class="nav-link">Giá cả</a>
+                <a href="#" class="nav-link nav-login" onclick="openLoginPopup(event)">Đăng nhập</a>
+                <a href="#" class="nav-link nav-signup" onclick="openRegisterPopup(event)">Đăng ký</a>
+            </div>
+            <button class="menu-toggle" id="menuToggle">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z" />
+                </svg>
+            </button>
+        </div>
+    </nav>
+
+    <!-- Mobile Menu -->
+    <div class="mobile-menu" id="mobileMenu">
+        <a href="#features" class="mobile-menu-link">Tính năng</a>
+        <a href="#how-it-works" class="mobile-menu-link">Cách dùng</a>
+        <a href="#testimonials" class="mobile-menu-link">Đánh giá</a>
+        <a href="#faq" class="mobile-menu-link">FAQ</a>
+        <a href="#pricing" class="mobile-menu-link">Giá cả</a>
+        <a href="#" class="mobile-menu-link" onclick="openLoginPopup(event)">Đăng nhập</a>
+        <a href="#" class="mobile-menu-link mobile-signup" onclick="openRegisterPopup(event)">Đăng ký</a>
+    </div>
+
+    <!-- Mobile Menu Overlay -->
+    <div class="mobile-menu-overlay" id="mobileMenuOverlay" onclick="closeMobileMenu()"></div>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="hero-content">
+            <div class="hero-badge">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                </svg>
+                <span>4.8 (10,000+) Được tin tưởng bởi người dùng</span>
+            </div>
+            
+            <h1 class="hero-title">Học Tiếng Anh Cùng <span class="gradient-text">Trí Tuệ Nhân Tạo</span></h1>
+            <p class="hero-subtitle">Luyện phát âm, từ vựng, ngữ pháp với công nghệ AI tiên tiến. Học mọi lúc, mọi nơi, hoàn toàn miễn phí.</p>
+            
+            <div class="hero-buttons">
+                <a href="#" class="btn btn-primary" onclick="openRegisterPopup(event)">Bắt đầu miễn phí</a>
+                <a href="#how-it-works" class="btn btn-secondary">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="6 9 12 15 18 9"></polyline>
+                    </svg>
+                    Tìm hiểu thêm
+                </a>
+            </div>
+        </div>
+        
+        <div class="hero-visual">
+            <img src="{{ url_for('static', filename='images/hero-image.png') }}" alt="Hero Image" class="hero-image">
+        </div>
+    </section>
+
+
+
+    <!-- Features Highlight Section -->
+    <section class="features-highlight" id="features-highlight">
+        <div class="features-highlight-container">
+            <div class="features-highlight-content">
+                <div class="features-highlight-left">
+                    <p class="features-highlight-label">Tính Năng</p>
+                    <h2 class="features-highlight-title">Tính Năng Nổi Bật</h2>
+                    <img src="{{ url_for('static', filename='images/feature-image.png') }}" alt="Features" class="features-highlight-image">
+                </div>
+                
+                <div class="features-highlight-grid">
+                    <!-- Feature 1 -->
+                    <div class="feature-highlight-item">
+                        <div class="feature-highlight-header">
+                            <div class="feature-highlight-icon">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+                                    <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
+                                    <path d="M19.07 4.93a10 10 0 0 1 0 14.14" />
+                                </svg>
+                            </div>
+                            <h4>Luyện Phát Âm</h4>
+                        </div>
+                        <p>Nghe và luyện phát âm chuẩn với AI.</p>
+                        <a href="#" class="feature-highlight-link">Tìm hiểu <span>→</span></a>
+                    </div>
+
+                    <!-- Feature 2 -->
+                    <div class="feature-highlight-item">
+                        <div class="feature-highlight-header">
+                            <div class="feature-highlight-icon">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+                                    <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+                                </svg>
+                            </div>
+                            <h4>Từ Vựng Thông Minh</h4>
+                        </div>
+                        <p>Lưu và ôn tập từ vựng hiệu quả.</p>
+                        <a href="#" class="feature-highlight-link">Tìm hiểu <span>→</span></a>
+                    </div>
+
+                    <!-- Feature 3 -->
+                    <div class="feature-highlight-item">
+                        <div class="feature-highlight-header">
+                            <div class="feature-highlight-icon">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M12 20h9" />
+                                    <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
+                                </svg>
+                            </div>
+                            <h4>Sửa Ngữ Pháp</h4>
+                        </div>
+                        <p>Viết câu và nhận sửa chữa chi tiết.</p>
+                        <a href="#" class="feature-highlight-link">Tìm hiểu <span>→</span></a>
+                    </div>
+
+                    <!-- Feature 4 -->
+                    <div class="feature-highlight-item">
+                        <div class="feature-highlight-header">
+                            <div class="feature-highlight-icon">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="12" cy="12" r="1" />
+                                    <path d="M12 1v6m0 6v6" />
+                                    <path d="M4.22 4.22l4.24 4.24m5.08 5.08l4.24 4.24" />
+                                    <path d="M1 12h6m6 0h6" />
+                                    <path d="M4.22 19.78l4.24-4.24m5.08-5.08l4.24-4.24" />
+                                </svg>
+                            </div>
+                            <h4>AI Thông Minh</h4>
+                        </div>
+                        <p>Công nghệ AI tiên tiến giúp bạn học.</p>
+                        <a href="#" class="feature-highlight-link">Tìm hiểu <span>→</span></a>
+                    </div>
+
+                    <!-- Feature 5 -->
+                    <div class="feature-highlight-item">
+                        <div class="feature-highlight-header">
+                            <div class="feature-highlight-icon">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                                </svg>
+                            </div>
+                            <h4>Trò Chuyện Tự Do</h4>
+                        </div>
+                        <p>Trò chuyện với AI về bất kỳ chủ đề.</p>
+                        <a href="#" class="feature-highlight-link">Tìm hiểu <span>→</span></a>
+                    </div>
+
+                    <!-- Feature 6 -->
+                    <div class="feature-highlight-item">
+                        <div class="feature-highlight-header">
+                            <div class="feature-highlight-icon">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="12" cy="12" r="10" />
+                                    <path d="M12 6v6l4 2" />
+                                </svg>
+                            </div>
+                            <h4>Học Mọi Lúc</h4>
+                        </div>
+                        <p>Ứng dụng web và PWA, học offline.</p>
+                        <a href="#" class="feature-highlight-link">Tìm hiểu <span>→</span></a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- How It Works Section -->
+    <section class="how-it-works" id="how-it-works">
+        <div class="section-container">
+            <h2 class="section-title">Cách Hoạt Động</h2>
+            <p class="section-subtitle">3 bước đơn giản để bắt đầu học</p>
+            
+            <div class="steps-grid">
+                <div class="step">
+                    <div class="step-number">1</div>
+                    <h3 class="step-title">Đăng Ký Miễn Phí</h3>
+                    <p class="step-desc">Tạo tài khoản chỉ trong 30 giây. Không cần thẻ tín dụng.</p>
+                </div>
+                <div class="step">
+                    <div class="step-number">2</div>
+                    <h3 class="step-title">Chọn Bài Học</h3>
+                    <p class="step-desc">Chọn từ hàng loạt bài học từ cơ bản đến nâng cao.</p>
+                </div>
+                <div class="step">
+                    <div class="step-number">3</div>
+                    <h3 class="step-title">Bắt Đầu Học</h3>
+                    <p class="step-desc">Học, luyện tập, và theo dõi tiến độ của bạn.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Stats Section -->
+    <section class="stats-section">
+        <div class="section-container">
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <div class="stat-icon">
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#4285f4" stroke-width="2">
+                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                            <circle cx="9" cy="7" r="4" />
+                            <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                            <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                        </svg>
+                    </div>
+                    <h3 class="stat-title">10,000+</h3>
+                    <p class="stat-desc">Người dùng hoạt động</p>
+                </div>
+
+                <div class="stat-item">
+                    <div class="stat-icon">
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#34a853" stroke-width="2">
+                            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+                            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+                        </svg>
+                    </div>
+                    <h3 class="stat-title">50,000+</h3>
+                    <p class="stat-desc">Bài học có sẵn</p>
+                </div>
+
+                <div class="stat-item">
+                    <div class="stat-icon">
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#fbbc05" stroke-width="2">
+                            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                        </svg>
+                    </div>
+                    <h3 class="stat-title">4.8/5</h3>
+                    <p class="stat-desc">Đánh giá trung bình</p>
+                </div>
+
+                <div class="stat-item">
+                    <div class="stat-icon">
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#ea4335" stroke-width="2">
+                            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z" />
+                            <path d="M12 6v6l4 2.5" />
+                        </svg>
+                    </div>
+                    <h3 class="stat-title">1M+</h3>
+                    <p class="stat-desc">Giờ học tích lũy</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Pricing Section -->
+    <section class="pricing" id="pricing">
+        <div class="section-container">
+            <h2 class="section-title">Giá Cả Đơn Giản</h2>
+            <p class="section-subtitle">Chọn gói phù hợp với bạn</p>
+            
+            <div class="pricing-grid">
+                <!-- Free Plan -->
+                <div class="pricing-card">
+                    <div class="pricing-icon">
+                        <img src="{{ url_for('static', filename='images/pricing.png') }}" alt="Free Plan">
+                    </div>
+                    <h3 class="pricing-title">Miễn Phí</h3>
+                    <div class="pricing-price">
+                        <span class="price-amount">0₫</span>
+                        <span class="price-period">/tháng</span>
+                    </div>
+                    <ul class="pricing-features">
+                        <li>✓ 100.000 token/tháng</li>
+                        <li class="disabled">✗ Hỗ trợ ưu tiên</li>
+                    </ul>
+                    <a href="#" class="btn btn-secondary btn-block" onclick="openRegisterPopup(event)">Bắt Đầu</a>
+                </div>
+
+                <!-- Pro Plan -->
+                <div class="pricing-card featured">
+                    <div class="pricing-badge">Phổ Biến</div>
+                    <div class="pricing-icon">
+                        <img src="{{ url_for('static', filename='images/pricing.png') }}" alt="Pro Plan">
+                    </div>
+                    <h3 class="pricing-title">Pro</h3>
+                    <div class="pricing-price">
+                        <span class="price-amount">99,000₫</span>
+                        <span class="price-period">/tháng</span>
+                    </div>
+                    <ul class="pricing-features">
+                        <li>✓ 2.000.000 token/tháng</li>
+                        <li>✓ Hỗ trợ ưu tiên</li>
+                    </ul>
+                    <a href="#" class="btn btn-primary btn-block" onclick="openRegisterPopup(event)">Nâng Cấp</a>
+                </div>
+
+                <!-- Premium Plan -->
+                <div class="pricing-card">
+                    <div class="pricing-icon">
+                        <img src="{{ url_for('static', filename='images/pricing.png') }}" alt="Premium Plan">
+                    </div>
+                    <h3 class="pricing-title">Premium</h3>
+                    <div class="pricing-price">
+                        <span class="price-amount">199,000₫</span>
+                        <span class="price-period">/tháng</span>
+                    </div>
+                    <ul class="pricing-features">
+                        <li>✓ 6.000.000 token/tháng</li>
+                        <li>✓ Hỗ trợ 24/7</li>
+                    </ul>
+                    <a href="#" class="btn btn-secondary btn-block" onclick="openRegisterPopup(event)">Nâng Cấp</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- FAQ Section -->
+    <section class="faq" id="faq">
+        <div class="section-container">
+            <h2 class="section-title">Câu Hỏi Thường Gặp</h2>
+            <p class="section-subtitle">Tìm câu trả lời cho những câu hỏi phổ biến</p>
+            
+            <div class="faq-grid">
+                <div class="faq-item">
+                    <button class="faq-question" onclick="toggleFAQ(this)">
+                        <span>Teacher Da Vinci là gì?</span>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="6 9 12 15 18 9"></polyline>
+                        </svg>
+                    </button>
+                    <div class="faq-answer">
+                        <p>Teacher Da Vinci là một nền tảng học tiếng Anh trực tuyến sử dụng công nghệ Trí tuệ nhân tạo AI để giúp bạn cải thiện kỹ năng tiếng Anh. Bạn có thể luyện phát âm, học từ vựng, sửa ngữ pháp, và trò chuyện với AI.</p>
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <button class="faq-question" onclick="toggleFAQ(this)">
+                        <span>Tôi có thể bắt đầu miễn phí không?</span>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="6 9 12 15 18 9"></polyline>
+                        </svg>
+                    </button>
+                    <div class="faq-answer">
+                        <p>Có! Bạn có thể đăng ký tài khoản miễn phí và nhận 100K token mỗi tháng. Điều này đủ để bạn thử tất cả các tính năng cơ bản.</p>
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <button class="faq-question" onclick="toggleFAQ(this)">
+                        <span>Token là gì?</span>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="6 9 12 15 18 9"></polyline>
+                        </svg>
+                    </button>
+                    <div class="faq-answer">
+                        <p>Token là đơn vị tính toán cho mỗi lần bạn sử dụng AI. Mỗi câu hỏi, mỗi lần sửa ngữ pháp, mỗi lần trò chuyện đều tiêu tốn một số token nhất định.</p>
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <button class="faq-question" onclick="toggleFAQ(this)">
+                        <span>Tôi có thể học offline không?</span>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="6 9 12 15 18 9"></polyline>
+                        </svg>
+                    </button>
+                    <div class="faq-answer">
+                        <p>Có! Teacher Da Vinci là một PWA (Progressive Web App) nên bạn có thể cài đặt nó trên điện thoại hoặc máy tính. Khi offline, bạn vẫn xem được các cuộc trò chuyện cũ, nhưng không thể gửi tin nhắn mới. Dữ liệu sẽ được đồng bộ khi bạn có kết nối internet.</p>
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <button class="faq-question" onclick="toggleFAQ(this)">
+                        <span>Làm thế nào để nâng cấp gói?</span>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="6 9 12 15 18 9"></polyline>
+                        </svg>
+                    </button>
+                    <div class="faq-answer">
+                        <p>Bạn có thể nâng cấp gói bất kỳ lúc nào từ trang cài đặt tài khoản. Chỉ cần chọn gói mong muốn và thanh toán. Bạn sẽ nhận được token ngay lập tức.</p>
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <button class="faq-question" onclick="toggleFAQ(this)">
+                        <span>Có hỗ trợ khách hàng không?</span>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="6 9 12 15 18 9"></polyline>
+                        </svg>
+                    </button>
+                    <div class="faq-answer">
+                        <p>Có! Chúng tôi cung cấp hỗ trợ qua email và chat. Người dùng gói Premium nhận được hỗ trợ ưu tiên 24/7.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section class="cta">
+        <div class="section-container">
+            <h2 class="cta-title">Sẵn Sàng Bắt Đầu?</h2>
+            <p class="cta-subtitle">Tham gia hàng ngàn người dùng đang học tiếng Anh với Teacher Da Vinci</p>
+            <a href="#" class="btn btn-primary btn-large" onclick="openRegisterPopup(event)">Đăng Ký Miễn Phí Ngay</a>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="section-container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h4>Teacher Da Vinci</h4>
+                    <p>Nền tảng học tiếng Anh với AI thông minh.</p>
+                </div>
+                <div class="footer-section">
+                    <h4>Liên Kết</h4>
+                    <ul>
+                        <li><a href="#features">Tính năng</a></li>
+                        <li><a href="#how-it-works">Cách dùng</a></li>
+                        <li><a href="#pricing">Giá cả</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h4>Pháp Lý</h4>
+                    <ul>
+                        <li><a href="#">Điều khoản dịch vụ</a></li>
+                        <li><a href="#">Chính sách bảo mật</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2026 Teacher Da Vinci. Tất cả quyền được bảo lưu.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Login Popup -->
+    <div class="auth-popup" id="loginPopup">
+        <div class="auth-popup-content">
+            <button class="popup-close" onclick="closeLoginPopup()">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18" />
+                    <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+            </button>
+            
+            <div class="auth-header">
+                <h2>Đăng Nhập</h2>
+                <p>Chào mừng quay lại!</p>
+            </div>
+
+            <div class="auth-error" id="loginError"></div>
+
+            <form id="loginForm" onsubmit="handleLogin(event)">
+                <div class="form-group">
+                    <label for="loginUsername">Tên đăng nhập hoặc Email</label>
+                    <input type="text" id="loginUsername" name="username" required placeholder="Nhập tên đăng nhập hoặc email">
+                </div>
+
+                <div class="form-group">
+                    <label for="loginPassword">Mật khẩu</label>
+                    <input type="password" id="loginPassword" name="password" required placeholder="Nhập mật khẩu">
+                </div>
+
+                <div class="form-group checkbox">
+                    <input type="checkbox" id="loginRemember" name="remember">
+                    <label for="loginRemember">Ghi nhớ tôi</label>
+                </div>
+
+                <button type="submit" class="btn btn-primary btn-block">Đăng Nhập</button>
+
+                <div class="auth-footer">
+                    <p>Chưa có tài khoản? <a href="#" onclick="switchToRegister(event)">Đăng ký ngay</a></p>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Register Popup -->
+    <div class="auth-popup" id="registerPopup">
+        <div class="auth-popup-content">
+            <button class="popup-close" onclick="closeRegisterPopup()">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18" />
+                    <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+            </button>
+            
+            <div class="auth-header">
+                <h2>Đăng Ký</h2>
+                <p>Bắt đầu hành trình học tiếng Anh của bạn</p>
+            </div>
+
+            <div class="auth-error" id="registerError"></div>
+
+            <form id="registerForm" onsubmit="handleRegister(event)">
+                <div class="form-group">
+                    <label for="registerUsername">Tên đăng nhập</label>
+                    <input type="text" id="registerUsername" name="username" required placeholder="Chọn tên đăng nhập">
+                </div>
+
+                <div class="form-group">
+                    <label for="registerEmail">Email</label>
+                    <input type="email" id="registerEmail" name="email" required placeholder="Nhập email của bạn">
+                </div>
+
+                <div class="form-group">
+                    <label for="registerPassword">Mật khẩu</label>
+                    <input type="password" id="registerPassword" name="password" required placeholder="Tạo mật khẩu mạnh">
+                </div>
+
+                <div class="form-group">
+                    <label for="registerConfirm">Xác nhận mật khẩu</label>
+                    <input type="password" id="registerConfirm" name="confirm" required placeholder="Xác nhận mật khẩu">
+                </div>
+
+                <button type="submit" class="btn btn-primary btn-block">Đăng Ký</button>
+
+                <div class="auth-footer">
+                    <p>Đã có tài khoản? <a href="#" onclick="switchToLogin(event)">Đăng nhập</a></p>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Auth Popup Overlay -->
+    <div class="auth-popup-overlay" id="authPopupOverlay" onclick="closeAllPopups()"></div>
+
+    <script>
+        // ==================== MOBILE MENU ====================
+        const menuToggle = document.getElementById('menuToggle');
+        const mobileMenu = document.getElementById('mobileMenu');
+        const mobileMenuOverlay = document.getElementById('mobileMenuOverlay');
+
+        menuToggle.addEventListener('click', () => {
+            mobileMenu.classList.toggle('active');
+            mobileMenuOverlay.classList.toggle('active');
+        });
+
+        function closeMobileMenu() {
+            mobileMenu.classList.remove('active');
+            mobileMenuOverlay.classList.remove('active');
+        }
+
+        // Close mobile menu when clicking a link
+        document.querySelectorAll('.mobile-menu-link').forEach(link => {
+            link.addEventListener('click', closeMobileMenu);
+        });
+
+        // ==================== FAQ TOGGLE ====================
+        function toggleFAQ(button) {
+            const faqItem = button.parentElement;
+            const isActive = faqItem.classList.contains('active');
+            
+            // Close all other FAQ items
+            document.querySelectorAll('.faq-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            
+            // Toggle current item
+            if (!isActive) {
+                faqItem.classList.add('active');
+            }
+        }
+
+        // ==================== AUTH POPUPS ====================
+        function openLoginPopup(e) {
+            if (e) e.preventDefault();
+            closeMobileMenu();
+            document.getElementById('loginPopup').classList.add('active');
+            document.getElementById('authPopupOverlay').classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeLoginPopup() {
+            document.getElementById('loginPopup').classList.remove('active');
+            document.getElementById('authPopupOverlay').classList.remove('active');
+            document.body.style.overflow = '';
+        }
+
+        function openRegisterPopup(e) {
+            if (e) e.preventDefault();
+            closeMobileMenu();
+            document.getElementById('registerPopup').classList.add('active');
+            document.getElementById('authPopupOverlay').classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeRegisterPopup() {
+            document.getElementById('registerPopup').classList.remove('active');
+            document.getElementById('authPopupOverlay').classList.remove('active');
+            document.body.style.overflow = '';
+        }
+
+        function closeAllPopups() {
+            closeLoginPopup();
+            closeRegisterPopup();
+        }
+
+        function switchToRegister(e) {
+            e.preventDefault();
+            const loginPopup = document.getElementById('loginPopup');
+            const registerPopup = document.getElementById('registerPopup');
+            
+            // Fade out login
+            loginPopup.style.opacity = '0';
+            loginPopup.style.transform = 'translate(-50%, -50%) scale(0.95)';
+            
+            setTimeout(() => {
+                loginPopup.classList.remove('active');
+                loginPopup.style.opacity = '';
+                loginPopup.style.transform = '';
+                
+                // Fade in register
+                registerPopup.style.opacity = '0';
+                registerPopup.style.transform = 'translate(-50%, -50%) scale(0.95)';
+                registerPopup.classList.add('active');
+                
+                setTimeout(() => {
+                    registerPopup.style.opacity = '1';
+                    registerPopup.style.transform = 'translate(-50%, -50%) scale(1)';
+                }, 10);
+            }, 150);
+        }
+
+        function switchToLogin(e) {
+            e.preventDefault();
+            const loginPopup = document.getElementById('loginPopup');
+            const registerPopup = document.getElementById('registerPopup');
+            
+            // Fade out register
+            registerPopup.style.opacity = '0';
+            registerPopup.style.transform = 'translate(-50%, -50%) scale(0.95)';
+            
+            setTimeout(() => {
+                registerPopup.classList.remove('active');
+                registerPopup.style.opacity = '';
+                registerPopup.style.transform = '';
+                
+                // Fade in login
+                loginPopup.style.opacity = '0';
+                loginPopup.style.transform = 'translate(-50%, -50%) scale(0.95)';
+                loginPopup.classList.add('active');
+                
+                setTimeout(() => {
+                    loginPopup.style.opacity = '1';
+                    loginPopup.style.transform = 'translate(-50%, -50%) scale(1)';
+                }, 10);
+            }, 150);
+        }
+
+        // ==================== FORM HANDLERS ====================
+        async function handleLogin(e) {
+            e.preventDefault();
+            const form = e.target;
+            const errorDiv = document.getElementById('loginError');
+            
+            const username = form.username.value.trim();
+            const password = form.password.value;
+            const remember = form.remember.checked;
+            
+            try {
+                const res = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password, remember })
+                });
+                
+                const data = await res.json();
+                
+                if (res.ok) {
+                    window.location.href = '/chat';
+                } else {
+                    errorDiv.textContent = data.error || 'Đăng nhập thất bại';
+                    errorDiv.classList.add('show');
+                }
+            } catch (err) {
+                errorDiv.textContent = 'Lỗi kết nối. Vui lòng thử lại.';
+                errorDiv.classList.add('show');
+            }
+        }
+
+        async function handleRegister(e) {
+            e.preventDefault();
+            const form = e.target;
+            const errorDiv = document.getElementById('registerError');
+            
+            const username = form.username.value.trim();
+            const email = form.email.value.trim();
+            const password = form.password.value;
+            const confirm = form.confirm.value;
+            
+            if (password !== confirm) {
+                errorDiv.textContent = 'Mật khẩu xác nhận không khớp';
+                errorDiv.classList.add('show');
+                return;
+            }
+            
+            try {
+                const res = await fetch('/api/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, email, password })
+                });
+                
+                const data = await res.json();
+                
+                if (res.ok) {
+                    window.location.href = '/chat';
+                } else {
+                    errorDiv.textContent = data.error || 'Đăng ký thất bại';
+                    errorDiv.classList.add('show');
+                }
+            } catch (err) {
+                errorDiv.textContent = 'Lỗi kết nối. Vui lòng thử lại.';
+                errorDiv.classList.add('show');
+            }
+        }
+
+        // ==================== SMOOTH SCROLL ====================
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function(e) {
+                const href = this.getAttribute('href');
+                if (href === '#') return;
+                
+                e.preventDefault();
+                const target = document.querySelector(href);
+                if (target) {
+                    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    closeMobileMenu();
+                }
+            });
+        });
+    </script>
+</body>
+
+</html>

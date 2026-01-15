@@ -103,18 +103,10 @@ def validate_username(username):
 def validate_password_strength(password):
     """Validate password meets security requirements"""
     errors = []
-    if len(password) < 12:
-        errors.append("Mật khẩu phải có ít nhất 12 ký tự")
+    if len(password) < 6:
+        errors.append("Mật khẩu phải có ít nhất 6 ký tự")
     if len(password) > 128:
         errors.append("Mật khẩu quá dài (tối đa 128 ký tự)")
-    if not any(c.isupper() for c in password):
-        errors.append("Mật khẩu phải có ít nhất 1 chữ hoa")
-    if not any(c.islower() for c in password):
-        errors.append("Mật khẩu phải có ít nhất 1 chữ thường")
-    if not any(c.isdigit() for c in password):
-        errors.append("Mật khẩu phải có ít nhất 1 số")
-    if not any(c in '!@#$%^&*()_+-=[]{}|;:,.<>?' for c in password):
-        errors.append("Mật khẩu phải có ít nhất 1 ký tự đặc biệt (!@#$%^&*...)")
     return errors
 
 
